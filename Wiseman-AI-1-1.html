@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wiseman AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+:root{
+  --g1:#7B2FFF;--g2:#00D4FF;--g3:#FF6B35;
+  --bg0:#080B14;--bg1:#0E1220;--bg2:#151B2E;--bg3:#1C2438;--bg4:#232C42;
+  --txt1:#F0F4FF;--txt2:#8B9CC8;--txt3:#4A5578;
+  --border:rgba(123,47,255,0.2);--border2:rgba(255,255,255,0.06);
+  --r:12px;--r-lg:18px;--r-xl:26px;
+  --nav-h:64px;--top-h:56px;
+  --sans:'Space Grotesk',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg0);font-family:var(--sans);color:var(--txt1);}
+button{font-family:var(--sans);cursor:pointer;border:none;outline:none;transition:all .15s;}
+button:active{transform:scale(0.95);}
+input,textarea,select{font-family:var(--sans);outline:none;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:9999;background:var(--bg0);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease;}
+.sp-orb{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-size:3rem;opacity:0;transform:scale(0.4);transition:all .8s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 60px rgba(123,47,255,0.4);}
+.sp-orb.on{opacity:1;transform:scale(1);}
+.sp-name{font-size:2.6rem;font-weight:800;margin-top:20px;opacity:0;transform:translateY(16px);transition:all .6s ease .35s;background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.sp-name.on{opacity:1;transform:translateY(0);}
+.sp-tagline{font-size:0.68rem;color:var(--txt3);letter-spacing:3px;text-transform:uppercase;margin-top:8px;opacity:0;transition:opacity .5s ease .6s;font-family:var(--mono);}
+.sp-tagline.on{opacity:1;}
+.sp-bar{width:0;height:2px;background:linear-gradient(90deg,var(--g1),var(--g2));border-radius:2px;margin-top:36px;transition:width 1.3s ease .7s;}
+.sp-bar.on{width:130px;}
+.sp-hint{font-size:0.58rem;color:var(--txt3);margin-top:16px;opacity:0;transition:opacity .4s ease 1.8s;font-family:var(--mono);}
+.sp-hint.on{opacity:1;}
+
+/* SETUP */
+#setup{position:fixed;inset:0;z-index:800;background:var(--bg0);display:none;align-items:center;justify-content:center;padding:20px;}
+.setup-box{width:100%;max-width:420px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--r-xl);padding:28px;}
+.setup-orb{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 16px;box-shadow:0 0 30px rgba(123,47,255,0.3);}
+.setup-title{font-size:1.3rem;font-weight:800;text-align:center;margin-bottom:6px;}
+.setup-desc{font-size:0.75rem;color:var(--txt2);text-align:center;line-height:1.7;margin-bottom:24px;}
+.s-inp{width:100%;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--r);font-size:0.82rem;color:var(--txt1);font-family:var(--mono);margin-bottom:12px;transition:border-color .2s;user-select:text;}
+.s-inp:focus{border-color:var(--g1);}
+.s-inp::placeholder{color:var(--txt3);}
+.s-btn{width:100%;padding:14px;border-radius:var(--r);font-weight:800;font-size:0.9rem;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;margin-bottom:10px;}
+.s-demo{width:100%;padding:11px;border-radius:var(--r);background:transparent;color:var(--txt2);border:1px solid var(--border2);font-size:0.78rem;}
+.s-guide{margin-top:16px;background:var(--bg2);border-radius:var(--r);padding:14px;font-size:0.68rem;color:var(--txt3);font-family:var(--mono);line-height:1.9;}
+.s-guide span{color:var(--g2);}
+
+/* APP */
+#app{display:none;flex-direction:column;height:100%;position:fixed;inset:0;}
+
+/* TOPBAR */
+.topbar{height:var(--top-h);background:var(--bg1);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;}
+.tb-orb{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.tb-brand{font-size:1rem;font-weight:800;background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.tb-sub{font-size:0.55rem;color:var(--txt3);font-family:var(--mono);margin-top:1px;}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.tb-pill{font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;font-family:var(--mono);}
+.tb-pill.pro{background:linear-gradient(135deg,rgba(123,47,255,0.2),rgba(0,212,255,0.2));color:var(--g2);border:1px solid var(--border);}
+.tb-pill.demo{background:rgba(255,255,255,0.05);color:var(--txt3);border:1px solid var(--border2);}
+.tb-dot{width:7px;height:7px;border-radius:50%;}
+.tb-dot.on{background:#3DDC84;box-shadow:0 0 6px #3DDC84;}
+.tb-dot.off{background:var(--txt3);}
+.tb-gear{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:5px 9px;font-size:0.75rem;color:var(--txt2);}
+
+/* PANELS */
+.panels{flex:1;overflow:hidden;position:relative;}
+.panel{position:absolute;inset:0;display:none;flex-direction:column;}
+.panel.active{display:flex;}
+
+/* BOTTOM NAV */
+.nav-bar{height:var(--nav-h);background:var(--bg1);border-top:1px solid var(--border2);display:flex;align-items:center;padding:0 8px;padding-bottom:env(safe-area-inset-bottom,0);flex-shrink:0;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:var(--r);cursor:pointer;max-width:85px;margin:0 auto;}
+.nav-item.active{background:rgba(123,47,255,0.12);}
+.nav-icon{font-size:1.3rem;}
+.nav-lbl{font-size:0.54rem;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:0.5px;}
+.nav-item.active .nav-lbl{color:var(--g1);}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(var(--nav-h)+10px);left:50%;transform:translateX(-50%) translateY(14px);font-family:var(--mono);font-size:0.72rem;font-weight:700;padding:9px 18px;border-radius:30px;z-index:7000;opacity:0;pointer-events:none;white-space:nowrap;transition:all .2s;border:1px solid var(--border);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{background:#3DDC84;color:#000;border-color:transparent;}
+#toast.err{background:#FF5F6D;color:#fff;border-color:transparent;}
+#toast.warn{background:var(--g3);color:#fff;border-color:transparent;}
+#toast.info{background:var(--bg3);color:var(--txt1);}
+
+/* ===== CHAT ===== */
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px;}
+.msg-wrap{display:flex;gap:9px;animation:fadeUp .25s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.msg-wrap.user{flex-direction:row-reverse;}
+.msg-av{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.95rem;}
+.msg-wrap.ai .msg-av{background:linear-gradient(135deg,var(--g1),var(--g2));}
+.msg-wrap.user .msg-av{background:var(--bg3);border:1px solid var(--border2);}
+.msg-body{max-width:82%;}
+.msg-bubble{padding:11px 14px;border-radius:var(--r-lg);font-size:0.8rem;line-height:1.7;}
+.msg-wrap.ai .msg-bubble{background:var(--bg2);border:1px solid var(--border2);border-bottom-left-radius:4px;}
+.msg-wrap.user .msg-bubble{background:linear-gradient(135deg,var(--g1),rgba(123,47,255,0.8));color:#fff;border-bottom-right-radius:4px;}
+.msg-time{font-size:0.54rem;color:var(--txt3);margin-top:4px;font-family:var(--mono);}
+.msg-wrap.user .msg-time{text-align:right;}
+.msg-bubble pre{background:var(--bg0);border:1px solid var(--border2);border-radius:8px;padding:12px;margin:8px 0;font-family:var(--mono);font-size:0.7rem;overflow-x:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;}
+.msg-bubble code{font-family:var(--mono);color:var(--g2);font-size:0.75rem;}
+.msg-bubble strong{font-weight:700;color:var(--g2);}
+.msg-bubble h3{font-size:0.85rem;font-weight:700;margin:8px 0 4px;color:var(--txt1);}
+.msg-bubble ul,.msg-bubble ol{padding-left:16px;margin:6px 0;}
+.msg-bubble li{margin-bottom:3px;}
+.prev-btn{margin-top:9px;padding:8px 14px;background:rgba(123,47,255,0.15);border:1px solid var(--border);border-radius:var(--r);font-size:0.7rem;font-weight:700;color:var(--g2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);}
+.prev-btn:active{background:var(--g1);color:#fff;}
+.dl-btn{margin-top:6px;margin-left:8px;padding:8px 14px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);border-radius:var(--r);font-size:0.7rem;font-weight:700;color:var(--g2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);}
+
+/* Typing */
+.typing-bub{padding:12px 15px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-lg);border-bottom-left-radius:4px;display:inline-flex;gap:5px;align-items:center;}
+.td{width:6px;height:6px;border-radius:50%;background:var(--g1);animation:td 1.2s infinite;}
+.td:nth-child(2){animation-delay:.2s;}
+.td:nth-child(3){animation-delay:.4s;}
+@keyframes td{0%,80%,100%{opacity:.2;}40%{opacity:1;}}
+
+/* Quick prompts */
+.qbar{padding:8px 14px;display:flex;gap:7px;overflow-x:auto;flex-shrink:0;}
+.qbar::-webkit-scrollbar{display:none;}
+.qp{padding:7px 13px;background:var(--bg2);border:1px solid var(--border2);border-radius:20px;font-size:0.67rem;font-weight:600;color:var(--txt2);white-space:nowrap;cursor:pointer;flex-shrink:0;font-family:var(--mono);transition:all .15s;}
+.qp:active{background:rgba(123,47,255,0.2);border-color:var(--border);color:var(--g2);}
+
+/* Chat input */
+.chat-bar{padding:10px 14px;background:var(--bg1);border-top:1px solid var(--border2);display:flex;gap:9px;align-items:flex-end;flex-shrink:0;}
+.chat-ta{flex:1;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--r-lg);padding:10px 13px;font-size:0.8rem;color:var(--txt1);resize:none;max-height:110px;min-height:42px;line-height:1.5;transition:border-color .2s;user-select:text;}
+.chat-ta:focus{border-color:var(--g1);}
+.chat-ta::placeholder{color:var(--txt3);}
+.send-btn{width:42px;height:42px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;font-size:1rem;display:flex;align-items:center;justify-content:center;}
+.send-btn:disabled{background:var(--bg3);color:var(--txt3);}
+
+/* ===== PREVIEW ===== */
+.prev-topbar{height:46px;background:var(--bg2);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0;}
+.prev-dots{display:flex;gap:5px;}
+.prev-dot{width:10px;height:10px;border-radius:50%;}
+.prev-title-bar{font-family:var(--mono);font-size:0.65rem;color:var(--txt2);flex:1;text-align:center;}
+.pbtn{padding:5px 11px;border-radius:7px;font-size:0.63rem;font-weight:700;font-family:var(--mono);}
+.pbtn.purple{background:rgba(123,47,255,0.2);color:var(--g1);border:1px solid var(--border);}
+.pbtn.cyan{background:rgba(0,212,255,0.1);color:var(--g2);border:1px solid rgba(0,212,255,0.2);}
+#prev-frame{flex:1;border:none;background:#fff;}
+.prev-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.pe-orb{width:70px;height:70px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:2rem;opacity:0.4;}
+.pe-txt{font-size:0.75rem;color:var(--txt3);font-family:var(--mono);text-align:center;line-height:1.7;}
+
+/* ===== HISTORY ===== */
+.hist-wrap{flex:1;overflow-y:auto;padding:14px;}
+.hist-hdr{font-family:var(--mono);font-size:0.7rem;color:var(--txt3);margin-bottom:14px;}
+.hist-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:13px;margin-bottom:9px;cursor:pointer;transition:border-color .15s;}
+.hist-card:active{border-color:var(--border);}
+.hc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.hc-tag{font-size:0.58rem;font-weight:700;padding:2px 8px;border-radius:10px;font-family:var(--mono);}
+.hc-tag.app{background:rgba(123,47,255,0.15);color:var(--g1);}
+.hc-tag.code{background:rgba(0,212,255,0.1);color:var(--g2);}
+.hc-tag.chat{background:rgba(255,255,255,0.05);color:var(--txt2);}
+.hc-date{font-size:0.57rem;color:var(--txt3);font-family:var(--mono);}
+.hc-q{font-size:0.77rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt1);}
+.hist-empty{text-align:center;padding:50px 20px;color:var(--txt3);font-family:var(--mono);font-size:0.72rem;line-height:1.8;}
+
+/* ===== SETTINGS ===== */
+.settings-wrap{flex:1;overflow-y:auto;padding:14px;}
+.s-hdr{font-family:var(--mono);font-size:0.58rem;font-weight:700;color:var(--txt3);letter-spacing:2px;text-transform:uppercase;margin:14px 0 8px;}
+.s-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;margin-bottom:10px;}
+.s-row{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--border2);cursor:pointer;}
+.s-row:last-child{border-bottom:none;}
+.s-ico{width:36px;height:36px;border-radius:9px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.s-inf{flex:1;}
+.s-lbl{font-size:0.8rem;font-weight:700;}
+.s-sub{font-size:0.6rem;color:var(--txt3);margin-top:1px;font-family:var(--mono);}
+.s-arr{color:var(--txt3);font-size:0.8rem;}
+.key-box{font-family:var(--mono);font-size:0.68rem;color:#3DDC84;background:var(--bg0);border-radius:7px;padding:10px 12px;word-break:break-all;margin-top:8px;border:1px solid rgba(61,220,132,0.15);}
+.key-inp{width:100%;padding:11px 13px;background:var(--bg0);border:1.5px solid var(--border2);border-radius:var(--r);font-size:0.76rem;color:var(--txt1);font-family:var(--mono);margin-top:8px;transition:border-color .2s;user-select:text;}
+.key-inp:focus{border-color:var(--g1);}
+.save-btn{width:100%;margin-top:10px;padding:12px;border-radius:var(--r);background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;font-weight:800;font-size:0.82rem;}
+.del-btn{width:100%;margin-top:7px;padding:11px;border-radius:var(--r);background:transparent;color:#FF5F6D;border:1px solid rgba(255,95,109,0.2);font-size:0.78rem;font-weight:700;}
+.mdl-sel{width:100%;padding:11px 13px;background:var(--bg0);border:1.5px solid var(--border2);border-radius:var(--r);font-size:0.78rem;color:var(--txt1);margin-top:8px;}
+.guide-box{padding:14px;font-size:0.68rem;font-family:var(--mono);color:var(--txt2);line-height:2;}
+.guide-box .step{color:var(--g2);}
+.guide-box .note{color:var(--txt3);}
+.about-card{padding:20px;text-align:center;}
+.about-orb{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 12px;box-shadow:0 0 24px rgba(123,47,255,0.3);}
+.about-name{font-size:1.1rem;font-weight:800;background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.about-ver{font-size:0.6rem;color:var(--txt3);font-family:var(--mono);margin-top:4px;}
+.about-desc{font-size:0.72rem;color:var(--txt2);margin-top:10px;line-height:1.7;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-orb" id="sp-orb">🧠</div>
+  <div class="sp-name" id="sp-name">Wiseman</div>
+  <div class="sp-tagline" id="sp-tag">Intelligent · Powered by Claude AI</div>
+  <div class="sp-bar" id="sp-bar"></div>
+  <div class="sp-hint" id="sp-hint">v1.0 · Bonaberi · Douala</div>
+</div>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-box">
+    <div class="setup-orb">🧠</div>
+    <div class="setup-title">Wiseman AI</div>
+    <div class="setup-desc">Entrez votre clé API Anthropic pour activer l'intelligence complète — génération d'apps, code, aperçu live, sans limite.</div>
+    <input class="s-inp" type="password" id="setup-inp" placeholder="sk-ant-api03-..." autocomplete="off">
+    <button class="s-btn" onclick="saveKey()">🚀 Activer Wiseman</button>
+    <button class="s-demo" onclick="startDemo()">Continuer en mode démo</button>
+    <div class="s-guide">
+      <span>// Obtenir votre clé :</span><br>
+      1. console.anthropic.com<br>
+      2. API Keys → Create Key<br>
+      3. Copier → Coller ici<br>
+      <span>// Coût : ~$0.003 / message</span>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="tb-orb">🧠</div>
+    <div>
+      <div class="tb-brand">Wiseman</div>
+      <div class="tb-sub" id="tb-sub">AI Assistant · Bonaberi</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-pill" id="tb-pill">PRO</div>
+      <div class="tb-dot" id="tb-dot"></div>
+      <button class="tb-gear" onclick="showPanel('p-settings')">⚙️</button>
+    </div>
+  </div>
+
+  <div class="panels">
+
+    <!-- CHAT -->
+    <div class="panel active" id="p-chat">
+      <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="qbar">
+        <div class="qp" onclick="qp('Crée une app calculatrice moderne')">📱 Calculatrice</div>
+        <div class="qp" onclick="qp('Génère une landing page pour un bar')">🌐 Landing page</div>
+        <div class="qp" onclick="qp('Crée un dashboard de ventes avec graphiques')">📊 Dashboard</div>
+        <div class="qp" onclick="qp('Fais un jeu Snake en JavaScript')">🎮 Jeu Snake</div>
+        <div class="qp" onclick="qp('Crée une app de timer et minuterie')">⏱️ Timer</div>
+        <div class="qp" onclick="qp('Crée un formulaire de contact stylé')">📋 Formulaire</div>
+        <div class="qp" onclick="qp('Comment optimiser la rentabilité d\'un bar ?')">💡 Conseil</div>
+        <div class="qp" onclick="qp('Explique Firebase simplement')">🔥 Firebase</div>
+        <div class="qp" onclick="qp('Crée une app de gestion de stock simple')">📦 Gestion stock</div>
+        <div class="qp" onclick="qp('Génère un portfolio web professionnel')">🎨 Portfolio</div>
+      </div>
+      <div class="chat-bar">
+        <textarea class="chat-ta" id="chat-inp" placeholder="Demandez à Wiseman de créer une app, d'expliquer, de coder..." rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+        <button class="send-btn" id="send-btn" onclick="send()">➤</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="panel" id="p-preview">
+      <div class="prev-topbar">
+        <div class="prev-dots">
+          <div class="prev-dot" style="background:#FF5F6D"></div>
+          <div class="prev-dot" style="background:#F5C842"></div>
+          <div class="prev-dot" style="background:#3DDC84"></div>
+        </div>
+        <div class="prev-title-bar" id="prev-title">Aucun aperçu</div>
+        <div style="display:flex;gap:6px">
+          <button class="pbtn purple" onclick="showPanel('p-chat')">← Chat</button>
+          <button class="pbtn cyan" onclick="dlApp()">⬇ DL</button>
+        </div>
+      </div>
+      <div class="prev-empty" id="prev-empty">
+        <div class="pe-orb">📱</div>
+        <div class="pe-txt">Demandez à Wiseman<br>de créer une app<br>pour voir l'aperçu ici</div>
+      </div>
+      <iframe id="prev-frame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="panel" id="p-history">
+      <div class="hist-wrap">
+        <div class="hist-hdr">// HISTORIQUE DES CONVERSATIONS</div>
+        <div id="hist-content">
+          <div class="hist-empty">Aucune conversation<br>pour le moment</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="p-settings">
+      <div class="settings-wrap">
+        <div style="font-family:var(--mono);font-size:0.75rem;font-weight:700;color:var(--txt2);margin-bottom:14px">// RÉGLAGES</div>
+
+        <div class="s-hdr">Clé API Anthropic</div>
+        <div class="s-card">
+          <div style="padding:14px">
+            <div style="font-size:0.72rem;font-weight:700;margin-bottom:4px">Clé active</div>
+            <div class="key-box" id="key-display">Non configurée</div>
+            <input class="key-inp" type="password" id="key-inp" placeholder="sk-ant-api03-..." autocomplete="off">
+            <button class="save-btn" onclick="updateKey()">💾 Sauvegarder</button>
+            <button class="del-btn" onclick="deleteKey()">🗑 Supprimer la clé</button>
+          </div>
+        </div>
+
+        <div class="s-hdr">Modèle Claude</div>
+        <div class="s-card">
+          <div style="padding:14px">
+            <select class="mdl-sel" id="mdl-sel" onchange="saveModel()">
+              <option value="claude-sonnet-4-6">claude-sonnet-4-6 · Recommandé</option>
+              <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 · Rapide & économique</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="s-hdr">Application</div>
+        <div class="s-card">
+          <div class="about-card">
+            <div class="about-orb">🧠</div>
+            <div class="about-name">Wiseman AI</div>
+            <div class="about-ver">v1.0 · Powered by Anthropic Claude</div>
+            <div class="about-desc">Assistant IA intelligent pour le développement d'apps et la gestion de business. Conçu à Bonaberi, Douala.</div>
+          </div>
+        </div>
+
+        <div class="s-hdr">Données</div>
+        <div class="s-card">
+          <div class="s-row" onclick="clearHist()">
+            <div class="s-ico">🗑</div>
+            <div class="s-inf"><div class="s-lbl">Effacer l'historique</div><div class="s-sub">Supprimer toutes les conversations</div></div>
+            <div class="s-arr">›</div>
+          </div>
+          <div class="s-row" onclick="newConv()">
+            <div class="s-ico">✨</div>
+            <div class="s-inf"><div class="s-lbl">Nouvelle conversation</div><div class="s-sub">Repartir de zéro</div></div>
+            <div class="s-arr">›</div>
+          </div>
+        </div>
+
+        <div class="s-hdr">Guide clé API</div>
+        <div class="s-card">
+          <div class="guide-box">
+            <span class="step">// Étapes :</span><br>
+            1. console.anthropic.com<br>
+            2. Créer un compte<br>
+            3. Ajouter carte bancaire<br>
+            4. API Keys → Create Key<br>
+            5. Copier → Coller dans Wiseman<br><br>
+            <span class="step">// Tarifs :</span><br>
+            Sonnet : ~$0.003/message<br>
+            Haiku : ~$0.0003/message<br><br>
+            <span class="note">// Clé stockée uniquement</span><br>
+            <span class="note">// sur cet appareil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item active" id="nav-chat" onclick="showPanel('p-chat')"><div class="nav-icon">💬</div><div class="nav-lbl">Chat</div></div>
+    <div class="nav-item" id="nav-preview" onclick="showPanel('p-preview')"><div class="nav-icon">📱</div><div class="nav-lbl">Aperçu</div></div>
+    <div class="nav-item" id="nav-history" onclick="showPanel('p-history');renderHist()"><div class="nav-icon">📜</div><div class="nav-lbl">Historique</div></div>
+    <div class="nav-item" id="nav-settings" onclick="showPanel('p-settings')"><div class="nav-icon">⚙️</div><div class="nav-lbl">Réglages</div></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// WISEMAN AI — Moteur complet
+// ============================================================
+var apiKey='backend'; // clé gérée en sécurité côté serveur (Vercel), l'app saute l'écran de config
+var model=localStorage.getItem('wiseman_model')||'claude-sonnet-4-6';
+var msgs=[];
+var hist=JSON.parse(localStorage.getItem('wiseman_hist')||'[]');
+var loading=false;
+var lastCode='';
+var demoMode=false;
+
+function el(id){return document.getElementById(id);}
+function showToast(msg,type){var t=el('toast');t.textContent=msg;t.className='show '+(type||'info');clearTimeout(t._t);t._t=setTimeout(function(){t.className='';},2800);}
+function autoResize(ta){ta.style.height='42px';ta.style.height=Math.min(ta.scrollHeight,110)+'px';}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function now(){return new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var p=el(id);if(p)p.classList.add('active');
+  var ni=el(id.replace('p-','nav-'));if(ni)ni.classList.add('active');
+}
+
+// ----- KEYS & SETTINGS -----
+function saveKey(){
+  var k=(el('setup-inp').value||'').trim();
+  if(!k.startsWith('sk-ant')){showToast('Clé invalide — doit commencer par sk-ant...','err');return;}
+  apiKey=k;localStorage.setItem('wiseman_key',k);
+  launch();
+}
+function updateKey(){
+  var k=(el('key-inp').value||'').trim();
+  if(!k){showToast('Entrez une clé','err');return;}
+  apiKey=k;localStorage.setItem('wiseman_key',k);
+  renderSettings();showToast('Clé sauvegardée ✓','ok');
+  el('tb-dot').className='tb-dot on';el('tb-pill').className='tb-pill pro';el('tb-pill').textContent='PRO';
+}
+function deleteKey(){
+  if(!confirm('Supprimer la clé ?'))return;
+  apiKey='';localStorage.removeItem('wiseman_key');
+  renderSettings();showToast('Clé supprimée','warn');
+}
+function saveModel(){model=el('mdl-sel').value;localStorage.setItem('wiseman_model',model);showToast('Modèle : '+model,'ok');}
+function renderSettings(){
+  var kd=el('key-display');
+  if(kd)kd.textContent=apiKey?apiKey.slice(0,14)+'•••••••••••••• ✓':'Non configurée';
+  var ki=el('key-inp');if(ki)ki.value='';
+  var ms=el('mdl-sel');if(ms)ms.value=model;
+}
+function startDemo(){demoMode=true;launch();}
+
+// ----- LAUNCH -----
+function launch(){
+  el('setup').style.display='none';
+  el('app').style.display='flex';
+  el('tb-dot').className='tb-dot '+(apiKey?'on':'off');
+  el('tb-pill').className='tb-pill '+(apiKey?'pro':'demo');
+  el('tb-pill').textContent=apiKey?'PRO':'DÉMO';
+  renderSettings();
+  var welcome=apiKey
+    ?'Bonjour ! Je suis **Wiseman** 🧠, votre assistant IA intelligent.\n\nJe peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nQue voulez-vous créer aujourd\'hui ?'
+    :'⚠️ **Mode démo** — Clé API non configurée.\n\nAllez dans **Réglages** pour entrer votre clé Anthropic et débloquer l\'IA complète.\n\nEn attendant, je vais vous montrer un exemple de ce que je génère !';
+  addMsg('ai',welcome);
+}
+
+// ----- CHAT -----
+function qp(t){el('chat-inp').value=t;send();}
+
+function send(){
+  if(loading)return;
+  var inp=el('chat-inp');
+  var txt=(inp.value||'').trim();
+  if(!txt)return;
+  inp.value='';inp.style.height='42px';
+  addMsg('user',txt);
+  msgs.push({role:'user',content:txt});
+  if(!apiKey||demoMode){demoReply(txt);return;}
+  callAI();
+}
+
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function fmt(text){
+  var blocks=[];
+  text=text.replace(/```(\w*)\n?([\s\S]*?)```/g,function(m,lang,code){
+    var i=blocks.length;
+    blocks.push('<pre><code>'+esc(code.trim())+'</code></pre>');
+    return '\x00CODE'+i+'\x00';
+  });
+  text=esc(text);
+  text=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  text=text.replace(/`(.*?)`/g,'<code>$1</code>');
+  text=text.replace(/^### (.*?)$/gm,'<h3>$1</h3>');
+  text=text.replace(/^• /gm,'<br>• ');
+  text=text.replace(/^\d+\. /gm,function(m){return '<br>'+m;});
+  text=text.replace(/\n/g,'<br>');
+  blocks.forEach(function(b,i){text=text.replace('\x00CODE'+i+'\x00',b);});
+  return text;
+}
+
+function addMsg(role,text){
+  var wrap=document.createElement('div');
+  wrap.className='msg-wrap '+role;
+  var html=fmt(text);
+  var hasCode=/<html|<!DOCTYPE/i.test(text)||/```html/i.test(text);
+  if(hasCode){
+    var m=text.match(/```html\n?([\s\S]*?)```/i);
+    if(m)lastCode=m[1].trim();
+    else lastCode=text;
+  }
+  var actions=hasCode
+    ?'<button class="prev-btn" onclick="openPreview()">👁 Aperçu live</button><button class="dl-btn" onclick="dlApp()">⬇ Télécharger</button>'
+    :'';
+  wrap.innerHTML='<div class="msg-av">'+(role==='ai'?'🧠':'👤')+'</div>'
+    +'<div class="msg-body"><div class="msg-bubble">'+html+'</div>'+actions
+    +'<div class="msg-time">'+now()+'</div></div>';
+  el('chat-msgs').appendChild(wrap);
+  el('chat-msgs').scrollTop=el('chat-msgs').scrollHeight;
+}
+
+function showTyping(){
+  var w=document.createElement('div');w.className='msg-wrap ai';w.id='typing';
+  w.innerHTML='<div class="msg-av">🧠</div><div class="typing-bub"><div class="td"></div><div class="td"></div><div class="td"></div></div>';
+  el('chat-msgs').appendChild(w);el('chat-msgs').scrollTop=el('chat-msgs').scrollHeight;
+}
+function hideTyping(){var t=el('typing');if(t)t.remove();}
+
+// ----- API CALL -----
+async function callAI(){
+  loading=true;el('send-btn').disabled=true;showTyping();
+  var sys=`Tu es Wiseman, un assistant IA expert et intelligent, créé à Bonaberi, Douala.
+Tu réponds en français par défaut. Si on te parle anglais, tu réponds en anglais.
+
+Quand tu génères du code HTML/CSS/JS :
+- Fournis TOUJOURS un fichier HTML complet et autonome (html+head+body+style+script en un seul fichier)
+- Code beau, moderne, fonctionnel immédiatement, avec couleurs et design soigné
+- Utilise des animations CSS pour un rendu premium
+- Commence avec \`\`\`html et termine avec \`\`\`
+
+Pour la gestion de business et bars en Afrique centrale :
+- Utilise le FCFA comme monnaie
+- Adapte les conseils au contexte camerounais
+- Sois pratique et concret
+
+Tu es expert en : HTML/CSS/JS, React, Python, Firebase, gestion de bar, business.`;
+
+  try{
+    var r=await fetch('https://wiseman-pearl.vercel.app/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:model,max_tokens:4000,system:sys,messages:msgs})
+    });
+    if(!r.ok){
+      var e=await r.json();
+      var em=e.error&&e.error.message?e.error.message:'Erreur API ('+r.status+')';
+      if(r.status===401)em='Clé API invalide. Vérifiez dans Réglages ⚙️';
+      if(r.status===429)em='Limite atteinte. Attendez un moment.';
+      if(r.status===400)em='Requête invalide. Nouvelle conversation ?';
+      hideTyping();addMsg('ai','⚠️ '+em);
+      loading=false;el('send-btn').disabled=false;return;
+    }
+    var data=await r.json();
+    var reply=data.content&&data.content[0]?data.content[0].text:'Pas de réponse.';
+    msgs.push({role:'assistant',content:reply});
+    var cm=reply.match(/```html\n?([\s\S]*?)```/i);if(cm)lastCode=cm[1].trim();
+    // Save history
+    var uMsg=msgs[msgs.length-2];
+    if(uMsg){
+      var tag=/```html/i.test(reply)?'app':/```/i.test(reply)?'code':'chat';
+      hist.unshift({q:uMsg.content.substring(0,80),a:reply,tag:tag,time:now(),date:new Date().toLocaleDateString('fr-FR')});
+      if(hist.length>60)hist=hist.slice(0,60);
+      localStorage.setItem('wiseman_hist',JSON.stringify(hist));
+    }
+    hideTyping();addMsg('ai',reply);
+  }catch(e){
+    hideTyping();addMsg('ai','⚠️ Erreur réseau : '+e.message);
+  }
+  loading=false;el('send-btn').disabled=false;
+}
+
+// ----- DEMO -----
+function demoReply(text){
+  loading=true;el('send-btn').disabled=true;showTyping();
+  var isApp=/app|crée|génère|code|html|jeu|calc|dashboard|page|timer|formulaire|portfolio/i.test(text);
+  setTimeout(function(){
+    hideTyping();
+    if(isApp){
+      lastCode='<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>App Wiseman</title>\n<style>\n*{margin:0;padding:0;box-sizing:border-box;}\nbody{font-family:\'Segoe UI\',sans-serif;background:linear-gradient(135deg,#0a0a0f,#1a0a2e);min-height:100vh;display:flex;align-items:center;justify-content:center;}\n.card{background:rgba(255,255,255,0.05);border:1px solid rgba(123,47,255,0.3);border-radius:20px;padding:30px;width:300px;text-align:center;backdrop-filter:blur(10px);}\nh1{font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#7B2FFF,#00D4FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px;}\n.display{background:rgba(0,0,0,0.4);border-radius:12px;padding:20px;font-size:2rem;font-weight:900;color:#fff;text-align:right;margin-bottom:16px;min-height:70px;word-break:break-all;}\n.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}\nbtn{padding:16px;border-radius:12px;border:none;font-size:1rem;font-weight:700;cursor:pointer;transition:.15s;}\nbtn:active{transform:scale(.93);}\n.num{background:rgba(255,255,255,0.1);color:#fff;}\n.op{background:rgba(123,47,255,0.3);color:#B57BFF;}\n.eq{background:linear-gradient(135deg,#7B2FFF,#00D4FF);color:#fff;}\n.zero{grid-column:span 2;}\n</style>\n</head>\n<body>\n<div class="card">\n<h1>🧠 Wiseman Calc</h1>\n<div class="display" id="d">0</div>\n<div class="grid">\n<button class="op" onclick="clr()">C</button><button class="op" onclick="pm()">+/-</button><button class="op" onclick="pct()">%</button><button class="op" onclick="op(\'/\')">÷</button>\n<button class="num" onclick="n(\'7\')">7</button><button class="num" onclick="n(\'8\')">8</button><button class="num" onclick="n(\'9\')">9</button><button class="op" onclick="op(\'*\')">×</button>\n<button class="num" onclick="n(\'4\')">4</button><button class="num" onclick="n(\'5\')">5</button><button class="num" onclick="n(\'6\')">6</button><button class="op" onclick="op(\'-\')">−</button>\n<button class="num" onclick="n(\'1\')">1</button><button class="num" onclick="n(\'2\')">2</button><button class="num" onclick="n(\'3\')">3</button><button class="op" onclick="op(\'+\')">+</button>\n<button class="num zero" onclick="n(\'0\')">0</button><button class="num" onclick="n(\'.\')">.</button><button class="eq" onclick="calc()">=</button>\n</div>\n</div>\n<script>\nvar c=\'0\',p=\'\',o=\'\';\nfunction upd(){document.getElementById(\'d\').textContent=c;}\nfunction n(v){if(c===\'0\'&&v!==\'.\')c=v;else c+=v;upd();}\nfunction op(v){p=c;c=\'0\';o=v;}\nfunction clr(){c=\'0\';p=\'\';o=\'\';upd();}\nfunction pm(){c=String(-parseFloat(c));upd();}\nfunction pct(){c=String(parseFloat(c)/100);upd();}\nfunction calc(){var a=parseFloat(p),b=parseFloat(c);if(o===\'+\')c=String(a+b);else if(o===\'-\')c=String(a-b);else if(o===\'*\')c=String(a*b);else if(o===\'/\')c=b?String(a/b):\'Err\';upd();}\n<\/script>\n</body>\n</html>';
+      addMsg('ai','Voici une **calculatrice moderne** générée par Wiseman 🧠\n\nAvec votre clé API, je génère n\'importe quelle app en quelques secondes !\n\n⚠️ Mode démo — Configurez votre clé dans **Réglages** pour débloquer tout.');
+    } else {
+      addMsg('ai','En **mode démo**, mes réponses sont limitées.\n\nAvec votre clé API Anthropic (Réglages ⚙️), je peux :\n• Créer **n\'importe quelle app** web complète\n• Générer du code en **HTML, CSS, JS, Python, React**\n• Afficher l\'**aperçu live** immédiatement\n• Répondre à **toutes** vos questions\n• Vous conseiller sur votre **business**\n\n→ Allez dans **Réglages** pour entrer votre clé !');
+    }
+    loading=false;el('send-btn').disabled=false;
+  },1100);
+}
+
+// ----- PREVIEW -----
+function openPreview(){
+  if(!lastCode){showToast('Aucun code à afficher','err');return;}
+  var fr=el('prev-frame');var emp=el('prev-empty');
+  fr.style.display='block';emp.style.display='none';
+  var doc=fr.contentDocument||fr.contentWindow.document;
+  doc.open();doc.write(lastCode);doc.close();
+  el('prev-title').textContent='App générée par Wiseman';
+  showPanel('p-preview');
+}
+
+function dlApp(){
+  if(!lastCode){showToast('Aucune app à télécharger','err');return;}
+  var blob=new Blob([lastCode],{type:'text/html'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='wiseman-app-'+Date.now()+'.html';
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('App téléchargée !','ok');
+}
+
+// ----- HISTORY -----
+function renderHist(){
+  if(!hist.length){el('hist-content').innerHTML='<div class="hist-empty">Aucune conversation<br>pour le moment</div>';return;}
+  var h=hist.map(function(item,i){
+    return '<div class="hist-card" onclick="loadHist('+i+')">'
+      +'<div class="hc-top"><span class="hc-tag '+(item.tag||'chat')+'">'
+      +(item.tag==='app'?'📱 App':item.tag==='code'?'💻 Code':'💬 Chat')
+      +'</span><span class="hc-date">'+item.date+' '+item.time+'</span></div>'
+      +'<div class="hc-q">'+esc(item.q)+'...</div></div>';
+  }).join('');
+  el('hist-content').innerHTML=h;
+}
+function loadHist(i){
+  var item=hist[i];if(!item)return;
+  msgs=[{role:'user',content:item.q},{role:'assistant',content:item.a}];
+  el('chat-msgs').innerHTML='';
+  addMsg('user',item.q);addMsg('ai',item.a);
+  showPanel('p-chat');showToast('Conversation restaurée','ok');
+}
+function clearHist(){
+  if(!confirm('Effacer tout l\'historique ?'))return;
+  hist=[];localStorage.removeItem('wiseman_hist');
+  renderHist();showToast('Historique effacé','warn');
+}
+function newConv(){msgs=[];el('chat-msgs').innerHTML='';showPanel('p-chat');showToast('Nouvelle conversation','ok');addMsg('ai','Nouvelle conversation ! Que voulez-vous créer ?');}
+
+// ----- SPLASH + START -----
+(function(){
+  setTimeout(function(){
+    el('sp-orb').className='sp-orb on';
+    el('sp-name').className='sp-name on';
+    el('sp-tag').className='sp-tagline on';
+    el('sp-bar').className='sp-bar on';
+    el('sp-hint').className='sp-hint on';
+  },150);
+  setTimeout(function(){
+    el('splash').style.opacity='0';
+    setTimeout(function(){
+      el('splash').style.display='none';
+      if(apiKey){launch();}
+      else{el('setup').style.display='flex';}
+    },500);
+  },2800);
+})();
+</script>
+</body>
+</html>
