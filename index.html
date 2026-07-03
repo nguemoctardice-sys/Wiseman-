@@ -207,17 +207,12 @@ input,textarea,select{font-family:var(--sans);outline:none;}
   <div class="setup-box">
     <div class="setup-orb">🧠</div>
     <div class="setup-title">Wiseman AI</div>
-    <div class="setup-desc">Entrez votre clé API Anthropic pour activer l'intelligence complète — génération d'apps, code, aperçu live, sans limite.</div>
-    <input class="s-inp" type="password" id="setup-inp" placeholder="sk-ant-api03-..." autocomplete="off">
-    <button class="s-btn" onclick="saveKey()">🚀 Activer Wiseman</button>
-    <button class="s-demo" onclick="startDemo()">Continuer en mode démo</button>
-    <div class="s-guide">
-      <span>// Obtenir votre clé :</span><br>
-      1. console.anthropic.com<br>
-      2. API Keys → Create Key<br>
-      3. Copier → Coller ici<br>
-      <span>// Coût : ~$0.003 / message</span>
-    </div>
+    <div class="setup-desc" id="auth-desc">Connectez-vous ou créez un compte pour commencer à discuter avec Wiseman.</div>
+    <input class="s-inp" type="email" id="auth-email" placeholder="votre@email.com" autocomplete="off">
+    <input class="s-inp" type="password" id="auth-pass" placeholder="Mot de passe" autocomplete="off">
+    <button class="s-btn" onclick="authLogin()">🚀 Se connecter</button>
+    <button class="s-demo" onclick="authSignup()">Créer un compte (10 messages offerts)</button>
+    <div class="s-guide" id="auth-msg"></div>
   </div>
 </div>
 
@@ -295,14 +290,12 @@ input,textarea,select{font-family:var(--sans);outline:none;}
       <div class="settings-wrap">
         <div style="font-family:var(--mono);font-size:0.75rem;font-weight:700;color:var(--txt2);margin-bottom:14px">// RÉGLAGES</div>
 
-        <div class="s-hdr">Clé API Anthropic</div>
+        <div class="s-hdr">Mon compte</div>
         <div class="s-card">
           <div style="padding:14px">
-            <div style="font-size:0.72rem;font-weight:700;margin-bottom:4px">Clé active</div>
-            <div class="key-box" id="key-display">Non configurée</div>
-            <input class="key-inp" type="password" id="key-inp" placeholder="sk-ant-api03-..." autocomplete="off">
-            <button class="save-btn" onclick="updateKey()">💾 Sauvegarder</button>
-            <button class="del-btn" onclick="deleteKey()">🗑 Supprimer la clé</button>
+            <div style="font-size:0.72rem;font-weight:700;margin-bottom:4px">Crédits restants</div>
+            <div class="key-box" id="credits-display">—</div>
+            <button class="del-btn" onclick="authLogout()">🚪 Se déconnecter</button>
           </div>
         </div>
 
@@ -371,17 +364,90 @@ input,textarea,select{font-family:var(--sans);outline:none;}
 
 <div id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+var SUPA_URL='https://ocvsphuvotxcnxqsegph.supabase.co';
+var SUPA_KEY='sb_publishable_FTvfKp9cYOogG6k2uPtrbw_Ri-hFYoV';
+var supa=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+var currentUser=null;
+var userCredits=0;
+
+async function authSignup(){
+  var email=(el('auth-email').value||'').trim();
+  var pass=(el('auth-pass').value||'').trim();
+  if(!email||!pass){el('auth-msg').textContent='Entrez un email et un mot de passe.';return;}
+  if(pass.length<6){el('auth-msg').textContent='Le mot de passe doit faire au moins 6 caractères.';return;}
+  el('auth-msg').textContent='Création du compte...';
+  var res=await supa.auth.signUp({email:email,password:pass});
+  if(res.error){el('auth-msg').textContent='Erreur : '+res.error.message;return;}
+  currentUser=res.data.user;
+  await supa.from('profiles').insert({id:currentUser.id,email:email,credits:10});
+  userCredits=10;
+  el('auth-msg').textContent='Compte créé ✓';
+  launch();
+}
+
+async function authLogin(){
+  var email=(el('auth-email').value||'').trim();
+  var pass=(el('auth-pass').value||'').trim();
+  if(!email||!pass){el('auth-msg').textContent='Entrez un email et un mot de passe.';return;}
+  el('auth-msg').textContent='Connexion...';
+  var res=await supa.auth.signInWithPassword({email:email,password:pass});
+  if(res.error){el('auth-msg').textContent='Erreur : '+res.error.message;return;}
+  currentUser=res.data.user;
+  await loadCredits();
+  launch();
+}
+
+async function loadCredits(){
+  if(!currentUser)return;
+  var res=await supa.from('profiles').select('credits').eq('id',currentUser.id).single();
+  if(res.data)userCredits=res.data.credits;
+}
+
+async function useCredit(){
+  if(!currentUser)return false;
+  if(userCredits<=0)return false;
+  userCredits--;
+  await supa.from('profiles').update({credits:userCredits}).eq('id',currentUser.id);
+  updateCreditsDisplay();
+  return true;
+}
+
+function updateCreditsDisplay(){
+  var pill=el('tb-pill');
+  if(pill)pill.textContent=userCredits+' crédits';
+  var cd=el('credits-display');
+  if(cd)cd.textContent=userCredits+' crédits restants';
+}
+
+async function authLogout(){
+  await supa.auth.signOut();
+  currentUser=null;userCredits=0;
+  location.reload();
+}
+
+async function checkSession(){
+  var res=await supa.auth.getSession();
+  if(res.data.session){
+    currentUser=res.data.session.user;
+    await loadCredits();
+    launch();
+  }else{
+    el('setup').style.display='flex';
+  }
+}
+</script>
+
 <script>
 // ============================================================
 // WISEMAN AI — Moteur complet
 // ============================================================
-var apiKey='backend'; // clé gérée en sécurité côté serveur (Vercel), l'app saute l'écran de config
 var model=localStorage.getItem('wiseman_model')||'claude-sonnet-4-6';
 var msgs=[];
 var hist=JSON.parse(localStorage.getItem('wiseman_hist')||'[]');
 var loading=false;
 var lastCode='';
-var demoMode=false;
 
 function el(id){return document.getElementById(id);}
 function showToast(msg,type){var t=el('toast');t.textContent=msg;t.className='show '+(type||'info');clearTimeout(t._t);t._t=setTimeout(function(){t.className='';},2800);}
@@ -396,45 +462,20 @@ function showPanel(id){
   var ni=el(id.replace('p-','nav-'));if(ni)ni.classList.add('active');
 }
 
-// ----- KEYS & SETTINGS -----
-function saveKey(){
-  var k=(el('setup-inp').value||'').trim();
-  if(!k.startsWith('sk-ant')){showToast('Clé invalide — doit commencer par sk-ant...','err');return;}
-  apiKey=k;localStorage.setItem('wiseman_key',k);
-  launch();
-}
-function updateKey(){
-  var k=(el('key-inp').value||'').trim();
-  if(!k){showToast('Entrez une clé','err');return;}
-  apiKey=k;localStorage.setItem('wiseman_key',k);
-  renderSettings();showToast('Clé sauvegardée ✓','ok');
-  el('tb-dot').className='tb-dot on';el('tb-pill').className='tb-pill pro';el('tb-pill').textContent='PRO';
-}
-function deleteKey(){
-  if(!confirm('Supprimer la clé ?'))return;
-  apiKey='';localStorage.removeItem('wiseman_key');
-  renderSettings();showToast('Clé supprimée','warn');
-}
 function saveModel(){model=el('mdl-sel').value;localStorage.setItem('wiseman_model',model);showToast('Modèle : '+model,'ok');}
 function renderSettings(){
-  var kd=el('key-display');
-  if(kd)kd.textContent=apiKey?apiKey.slice(0,14)+'•••••••••••••• ✓':'Non configurée';
-  var ki=el('key-inp');if(ki)ki.value='';
   var ms=el('mdl-sel');if(ms)ms.value=model;
 }
-function startDemo(){demoMode=true;launch();}
 
 // ----- LAUNCH -----
 function launch(){
   el('setup').style.display='none';
   el('app').style.display='flex';
-  el('tb-dot').className='tb-dot '+(apiKey?'on':'off');
-  el('tb-pill').className='tb-pill '+(apiKey?'pro':'demo');
-  el('tb-pill').textContent=apiKey?'PRO':'DÉMO';
+  el('tb-dot').className='tb-dot on';
+  el('tb-pill').className='tb-pill pro';
+  updateCreditsDisplay();
   renderSettings();
-  var welcome=apiKey
-    ?'Bonjour ! Je suis **Wiseman** 🧠, votre assistant IA intelligent.\n\nJe peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nQue voulez-vous créer aujourd\'hui ?'
-    :'⚠️ **Mode démo** — Clé API non configurée.\n\nAllez dans **Réglages** pour entrer votre clé Anthropic et débloquer l\'IA complète.\n\nEn attendant, je vais vous montrer un exemple de ce que je génère !';
+  var welcome='Bonjour ! Je suis **Wiseman** 🧠, votre assistant IA intelligent.\n\nJe peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nVous avez **'+userCredits+' crédits**. Que voulez-vous créer aujourd\'hui ?';
   addMsg('ai',welcome);
 }
 
@@ -446,10 +487,10 @@ function send(){
   var inp=el('chat-inp');
   var txt=(inp.value||'').trim();
   if(!txt)return;
+  if(userCredits<=0){showToast('Crédits épuisés — rechargez votre compte','err');return;}
   inp.value='';inp.style.height='42px';
   addMsg('user',txt);
   msgs.push({role:'user',content:txt});
-  if(!apiKey||demoMode){demoReply(txt);return;}
   callAI();
 }
 
@@ -528,7 +569,7 @@ Tu es expert en : HTML/CSS/JS, React, Python, Firebase, gestion de bar, business
     if(!r.ok){
       var e=await r.json();
       var em=e.error&&e.error.message?e.error.message:'Erreur API ('+r.status+')';
-      if(r.status===401)em='Clé API invalide. Vérifiez dans Réglages ⚙️';
+      if(r.status===401)em='Erreur de configuration serveur. Réessayez plus tard.';
       if(r.status===429)em='Limite atteinte. Attendez un moment.';
       if(r.status===400)em='Requête invalide. Nouvelle conversation ?';
       hideTyping();addMsg('ai','⚠️ '+em);
@@ -537,6 +578,7 @@ Tu es expert en : HTML/CSS/JS, React, Python, Firebase, gestion de bar, business
     var data=await r.json();
     var reply=data.content&&data.content[0]?data.content[0].text:'Pas de réponse.';
     msgs.push({role:'assistant',content:reply});
+    await useCredit();
     var cm=reply.match(/```html\n?([\s\S]*?)```/i);if(cm)lastCode=cm[1].trim();
     // Save history
     var uMsg=msgs[msgs.length-2];
@@ -630,8 +672,7 @@ function newConv(){msgs=[];el('chat-msgs').innerHTML='';showPanel('p-chat');show
     el('splash').style.opacity='0';
     setTimeout(function(){
       el('splash').style.display='none';
-      if(apiKey){launch();}
-      else{el('setup').style.display='flex';}
+      checkSession();
     },500);
   },2800);
 })();
