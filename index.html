@@ -616,18 +616,30 @@ function fmt(text){
   return text;
 }
 
+function extractCode(text){
+  // Essaie plusieurs formats de bloc de code, du plus strict au plus permissif
+  var m=text.match(/```html\s*\n([\s\S]*?)\n```/i);
+  if(m)return m[1].trim();
+  m=text.match(/```html\s*([\s\S]*?)```/i);
+  if(m)return m[1].trim();
+  m=text.match(/```\s*\n(<!DOCTYPE[\s\S]*?)\n```/i);
+  if(m)return m[1].trim();
+  m=text.match(/(<!DOCTYPE html[\s\S]*?<\/html>)/i);
+  if(m)return m[1].trim();
+  m=text.match(/(<html[\s\S]*?<\/html>)/i);
+  if(m)return m[1].trim();
+  return null;
+}
+
 function addMsg(role,text){
   var wrap=document.createElement('div');
   wrap.className='msg-wrap '+role;
   var html=fmt(text);
-  var hasCode=/<html|<!DOCTYPE/i.test(text)||/```html/i.test(text);
-  if(hasCode){
-    var m=text.match(/```html\n?([\s\S]*?)```/i);
-    if(m)lastCode=m[1].trim();
-    else lastCode=text;
-  }
+  var extracted=extractCode(text);
+  var hasCode=!!extracted;
+  if(hasCode)lastCode=extracted;
   var actions=hasCode
-    ?'<button class="prev-btn" onclick="openPreview()">👁 Aperçu live</button><button class="dl-btn" onclick="dlApp()">⬇ Télécharger</button>'
+    ?'<button class="prev-btn" onclick="openPreview()">👁 Aperçu live</button><button class="dl-btn" onclick="dlApp()">⬇ Télécharger</button><button class="dl-btn" onclick="copyCode()">📋 Copier le code</button>'
     :'';
   wrap.innerHTML='<div class="msg-av">'+(role==='ai'?'🧠':'👤')+'</div>'
     +'<div class="msg-body"><div class="msg-bubble">'+html+'</div>'+actions
@@ -681,7 +693,7 @@ Tu es expert en : HTML/CSS/JS, React, Python, Firebase, gestion de bar, business
     var reply=data.content&&data.content[0]?data.content[0].text:'Pas de réponse.';
     msgs.push({role:'assistant',content:reply});
     await useCredit();
-    var cm=reply.match(/```html\n?([\s\S]*?)```/i);if(cm)lastCode=cm[1].trim();
+    var cm=extractCode(reply);if(cm)lastCode=cm;
     // Save history
     var uMsg=msgs[msgs.length-2];
     if(uMsg){
@@ -733,6 +745,15 @@ function dlApp(){
   document.body.appendChild(a);a.click();
   document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast('App téléchargée !','ok');
+}
+
+function copyCode(){
+  if(!lastCode){showToast('Aucun code à copier','err');return;}
+  navigator.clipboard.writeText(lastCode).then(function(){
+    showToast('Code copié ✓','ok');
+  }).catch(function(){
+    showToast('Impossible de copier','err');
+  });
 }
 
 // ----- HISTORY -----
