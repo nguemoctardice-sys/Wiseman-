@@ -51,6 +51,8 @@ input,textarea,select{font-family:var(--sans);outline:none;}
 .s-inp::placeholder{color:var(--txt3);}
 .s-btn{width:100%;padding:14px;border-radius:var(--r);font-weight:800;font-size:0.9rem;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;margin-bottom:10px;}
 .s-demo{width:100%;padding:11px;border-radius:var(--r);background:transparent;color:var(--txt2);border:1px solid var(--border2);font-size:0.78rem;}
+.pack-btn{width:100%;padding:14px;border-radius:var(--r);background:var(--bg2);color:var(--txt1);border:1.5px solid var(--border2);font-size:0.85rem;font-weight:700;text-align:left;transition:border-color .2s;}
+.pack-btn:active{border-color:var(--g1);}
 .s-guide{margin-top:16px;background:var(--bg2);border-radius:var(--r);padding:14px;font-size:0.68rem;color:var(--txt3);font-family:var(--mono);line-height:1.9;}
 .s-guide span{color:var(--g2);}
 
@@ -295,6 +297,7 @@ input,textarea,select{font-family:var(--sans);outline:none;}
           <div style="padding:14px">
             <div style="font-size:0.72rem;font-weight:700;margin-bottom:4px">Crédits restants</div>
             <div class="key-box" id="credits-display">—</div>
+            <button class="save-btn" onclick="openRecharge()" style="margin-top:8px">💳 Recharger mes crédits</button>
             <button class="del-btn" onclick="authLogout()">🚪 Se déconnecter</button>
           </div>
         </div>
@@ -359,6 +362,20 @@ input,textarea,select{font-family:var(--sans);outline:none;}
     <div class="nav-item" id="nav-preview" onclick="showPanel('p-preview')"><div class="nav-icon">📱</div><div class="nav-lbl">Aperçu</div></div>
     <div class="nav-item" id="nav-history" onclick="showPanel('p-history');renderHist()"><div class="nav-icon">📜</div><div class="nav-lbl">Historique</div></div>
     <div class="nav-item" id="nav-settings" onclick="showPanel('p-settings')"><div class="nav-icon">⚙️</div><div class="nav-lbl">Réglages</div></div>
+  </div>
+</div>
+
+<div id="recharge-modal" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:420px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--r-xl);padding:24px;">
+    <div style="font-size:1.1rem;font-weight:800;margin-bottom:6px">💳 Recharger mes crédits</div>
+    <div style="font-size:0.75rem;color:var(--txt2);margin-bottom:18px">Paiement sécurisé via Mobile Money ou carte bancaire (CinetPay).</div>
+    <div id="recharge-packs" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <button class="pack-btn" onclick="startPayment(500,20)">500 FCFA — 20 crédits</button>
+      <button class="pack-btn" onclick="startPayment(1000,50)">1 000 FCFA — 50 crédits</button>
+      <button class="pack-btn" onclick="startPayment(2000,120)">2 000 FCFA — 120 crédits</button>
+      <button class="pack-btn" onclick="startPayment(5000,350)">5 000 FCFA — 350 crédits</button>
+    </div>
+    <button class="s-demo" onclick="closeRecharge()">Annuler</button>
   </div>
 </div>
 
@@ -444,6 +461,38 @@ async function checkSession(){
     el('setup').style.display='flex';
   }
 }
+
+function openRecharge(){el('recharge-modal').style.display='flex';}
+function closeRecharge(){el('recharge-modal').style.display='none';}
+
+async function startPayment(amount,credits){
+  if(!currentUser){showToast('Connectez-vous d\'abord','err');return;}
+  var txId='WM'+Date.now()+Math.floor(Math.random()*1000);
+  showToast('Préparation du paiement...','info');
+  try{
+    var r=await fetch('https://wiseman-pearl.vercel.app/api/payment',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        amount:amount,
+        currency:'XAF',
+        description:credits+' crédits Wiseman AI',
+        customer_email:currentUser.email,
+        user_id:currentUser.id,
+        transaction_id:txId
+      })
+    });
+    var data=await r.json();
+    if(data.code==='201'&&data.data&&data.data.payment_url){
+      closeRecharge();
+      window.location.href=data.data.payment_url;
+    }else{
+      showToast('Erreur : '+(data.message||'Paiement indisponible'),'err');
+    }
+  }catch(e){
+    showToast('Erreur réseau : '+e.message,'err');
+  }
+}
 </script>
 
 <script>
@@ -484,9 +533,9 @@ function launch(){
   renderSettings();
   var welcome;
   if(isAdmin){
-    welcome='👑 **Bienvenue Boss !**\n\nVous êtes bien **'+userFullName+'**.\n\nAccès administrateur complet activé — crédits illimités.\n\nJe suis **Wiseman** 🧠, votre assistant IA. Je peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nQue voulez-vous créer aujourd\'hui, Patron ?';
+    welcome='👑 **Bienvenue Boss !**\n\nVous êtes bien **'+userFullName+'**.\n\nAccès administrateur complet activé — crédits illimités.\n\nJe suis **Wiseman** 🧠, votre assistant IA. Je peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Générer des images** (tape "crée une image de...")\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nQue voulez-vous créer aujourd\'hui, Patron ?';
   }else{
-    welcome='Bonjour ! Je suis **Wiseman** 🧠, votre assistant IA intelligent.\n\nJe peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nVous avez **'+userCredits+' crédits**. Que voulez-vous créer aujourd\'hui ?';
+    welcome='Bonjour ! Je suis **Wiseman** 🧠, votre assistant IA intelligent.\n\nJe peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Générer des images** (tape "crée une image de...")\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nVous avez **'+userCredits+' crédits**. Que voulez-vous créer aujourd\'hui ?';
   }
   addMsg('ai',welcome);
 }
@@ -503,7 +552,48 @@ function send(){
   inp.value='';inp.style.height='42px';
   addMsg('user',txt);
   msgs.push({role:'user',content:txt});
-  callAI();
+  var imgMatch=txt.match(/^\/image\s+(.+)/i)||txt.match(/^(?:crée|génère|dessine|fais|montre)[- ]?(?:moi)?\s+(?:une |un )?image\s*(?:de |d'|représentant )?(.*)/i);
+  if(imgMatch&&(!imgMatch[1]||!imgMatch[1].trim())){
+    inp.value='';
+    addMsg('ai','🎨 Bien sûr ! Décris-moi ce que tu veux comme image (ex : "crée une image d\'un lion dans la savane").');
+    return;
+  }
+  if(imgMatch){
+    generateImage(imgMatch[1]||txt);
+  }else{
+    callAI();
+  }
+}
+
+async function generateImage(prompt){
+  loading=true;el('send-btn').disabled=true;showTyping();
+  try{
+    var cleanPrompt=encodeURIComponent(prompt.trim());
+    var seed=Math.floor(Math.random()*100000);
+    var imgUrl='https://image.pollinations.ai/prompt/'+cleanPrompt+'?width=1024&height=1024&seed='+seed+'&nologo=true';
+    // Précharge l'image pour s'assurer qu'elle est prête avant affichage
+    await new Promise(function(resolve,reject){
+      var img=new Image();
+      img.onload=resolve;img.onerror=resolve; // resolve même en cas d'erreur pour ne pas bloquer
+      img.src=imgUrl;
+    });
+    await useCredit();
+    var reply='🎨 Voici votre image :\n\n<img src="'+imgUrl+'" style="width:100%;border-radius:14px;margin-top:8px" alt="Image générée">';
+    msgs.push({role:'assistant',content:'[Image générée : '+prompt+']'});
+    hideTyping();addMsgRaw('ai',reply);
+  }catch(e){
+    hideTyping();addMsg('ai','⚠️ Erreur lors de la génération de l\'image : '+e.message);
+  }
+  loading=false;el('send-btn').disabled=false;
+}
+
+function addMsgRaw(role,html){
+  var wrap=document.createElement('div');wrap.className='msg-wrap '+role;
+  wrap.innerHTML='<div class="msg-av">'+(role==='ai'?'🧠':'👤')+'</div>'
+    +'<div class="msg-body"><div class="msg-bubble">'+html+'</div>'
+    +'<div class="msg-time">'+now()+'</div></div>';
+  el('chat-msgs').appendChild(wrap);
+  el('chat-msgs').scrollTop=el('chat-msgs').scrollHeight;
 }
 
 function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
