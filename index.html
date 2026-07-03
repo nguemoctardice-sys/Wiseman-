@@ -371,6 +371,8 @@ var SUPA_KEY='sb_publishable_FTvfKp9cYOogG6k2uPtrbw_Ri-hFYoV';
 var supa=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 var currentUser=null;
 var userCredits=0;
+var isAdmin=false;
+var userFullName='';
 
 async function authSignup(){
   var email=(el('auth-email').value||'').trim();
@@ -401,12 +403,17 @@ async function authLogin(){
 
 async function loadCredits(){
   if(!currentUser)return;
-  var res=await supa.from('profiles').select('credits').eq('id',currentUser.id).single();
-  if(res.data)userCredits=res.data.credits;
+  var res=await supa.from('profiles').select('credits,is_admin,full_name').eq('id',currentUser.id).single();
+  if(res.data){
+    userCredits=res.data.credits;
+    isAdmin=!!res.data.is_admin;
+    userFullName=res.data.full_name||'';
+  }
 }
 
 async function useCredit(){
   if(!currentUser)return false;
+  if(isAdmin)return true;
   if(userCredits<=0)return false;
   userCredits--;
   await supa.from('profiles').update({credits:userCredits}).eq('id',currentUser.id);
@@ -416,14 +423,14 @@ async function useCredit(){
 
 function updateCreditsDisplay(){
   var pill=el('tb-pill');
-  if(pill)pill.textContent=userCredits+' crédits';
+  if(pill)pill.textContent=isAdmin?'👑 BOSS':userCredits+' crédits';
   var cd=el('credits-display');
-  if(cd)cd.textContent=userCredits+' crédits restants';
+  if(cd)cd.textContent=isAdmin?'Accès illimité — Administrateur':userCredits+' crédits restants';
 }
 
 async function authLogout(){
   await supa.auth.signOut();
-  currentUser=null;userCredits=0;
+  currentUser=null;userCredits=0;isAdmin=false;userFullName='';
   location.reload();
 }
 
@@ -475,7 +482,12 @@ function launch(){
   el('tb-pill').className='tb-pill pro';
   updateCreditsDisplay();
   renderSettings();
-  var welcome='Bonjour ! Je suis **Wiseman** 🧠, votre assistant IA intelligent.\n\nJe peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nVous avez **'+userCredits+' crédits**. Que voulez-vous créer aujourd\'hui ?';
+  var welcome;
+  if(isAdmin){
+    welcome='👑 **Bienvenue Boss !**\n\nVous êtes bien **'+userFullName+'**.\n\nAccès administrateur complet activé — crédits illimités.\n\nJe suis **Wiseman** 🧠, votre assistant IA. Je peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nQue voulez-vous créer aujourd\'hui, Patron ?';
+  }else{
+    welcome='Bonjour ! Je suis **Wiseman** 🧠, votre assistant IA intelligent.\n\nJe peux :\n• **Créer des apps** HTML/CSS/JS complètes\n• **Afficher un aperçu live** immédiatement\n• **Télécharger** chaque app générée\n• **Coder** dans n\'importe quel langage\n• **Répondre** à toutes vos questions\n• **Conseiller** sur la gestion de votre business\n\nVous avez **'+userCredits+' crédits**. Que voulez-vous créer aujourd\'hui ?';
+  }
   addMsg('ai',welcome);
 }
 
@@ -487,7 +499,7 @@ function send(){
   var inp=el('chat-inp');
   var txt=(inp.value||'').trim();
   if(!txt)return;
-  if(userCredits<=0){showToast('Crédits épuisés — rechargez votre compte','err');return;}
+  if(!isAdmin&&userCredits<=0){showToast('Crédits épuisés — rechargez votre compte','err');return;}
   inp.value='';inp.style.height='42px';
   addMsg('user',txt);
   msgs.push({role:'user',content:txt});
